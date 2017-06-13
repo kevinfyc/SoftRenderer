@@ -1,18 +1,55 @@
 # -*- coding:utf-8 -*-
 
 from kmath.vector2 import Vector2
+from kmath.vector4 import Vector4
 from kmath import vector2
 
 FM_WIREFRAME = 0 # 线框
 FM_SOLIDE	 = 1 # 填充
+
+FM_HO = (
+	FM_WIREFRAME,
+	FM_SOLIDE,
+)
 
 class DeviceContext:
 	def __init__(self, device):
 		self.device = device
 		self.renderMode = FM_WIREFRAME
 
+		self.vertex_buffer = []
+		self.index_buffer = []
+
+		self.camera_pos = Vector4()
+
 		return
 
+	######################################################
+	#
+	######################################################
+	def set_render_mode(self, mode):
+		if mode not in FM_HO:return
+
+		self.renderMode = mode
+
+		return
+
+	def set_vertex_buffer(self, vertex_buffer):
+		self.vertex_buffer = vertex_buffer
+		return
+
+	def set_index_buffer(self, index_buffer):
+		self.index_buffer = index_buffer
+		return
+
+	def set_camera_pos(self, pos):
+		self.camera_pos = pos
+		return
+
+	######################################################
+	#
+	######################################################
+	def draw(self, index, index_start, vertex_start):pass
 	######################################################
 	#
 	######################################################

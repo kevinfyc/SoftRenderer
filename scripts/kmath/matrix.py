@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+import math
 
 class Matrix:
 	def __init__(self,
@@ -108,6 +109,104 @@ class Matrix:
 		self.m41, self.m42, self.m43, self.m44 = 0, 0, 0, 0
 
 		return
+
+	# view 矩阵
+	@staticmethod
+	def matrix_look_at_lh(eyePos, lookAt, up):
+		zaxis = lookAt - eyePos
+		zaxis.normalize()
+
+		xaxis = up.cross(zaxis).normalize()
+
+		yaxis = zaxis.cross(xaxis)
+
+		return Matrix(
+				xaxis.x, yaxis.x, zaxis.x, 0,
+				xaxis.y, yaxis.y, zaxis.y, 0,
+				xaxis.z, yaxis.z, zaxis.z, 0,
+				-xaxis.dot(eyePos), -yaxis.dot(eyePos), -zaxis.dot(eyePos), 1
+				)
+
+	@staticmethod
+	def perspective_fov_lh(fov, aspect, near, far):
+		mat = Matrix()
+		mat.set_zero()
+
+		height = math.cos(fov*0.5) / math.sin(fov*0.5)
+		mat.set_v(0, 0, height / aspect)
+		mat.set_v(1, 1, height)
+		mat.set_v(2, 2, far / (far - near))
+		mat.set_v(2, 3, 1)
+		mat.set_v(3, 2, near * far / (near - far))
+		return mat
+
+	@staticmethod
+	def transpose(mat):
+		return Matrix(
+				mat.m11, mat.m21, mat.m31, mat.m41,
+				mat.m12, mat.m22, mat.m32, mat.m42,
+				mat.m13, mat.m23, mat.m33, mat.m43,
+				mat.m14, mat.m24, mat.m34, mat.m44
+				)
+
+	@staticmethod
+	def det(mat):
+		ret = \
+			mat.m11*mat.m22*mat.m33*mat.m44 - mat.m11*mat.m22*mat.m34*mat.m43 -\
+			mat.m11*mat.m23*mat.m32*mat.m44 + mat.m11*mat.m23*mat.m34*mat.m42 +\
+			mat.m11*mat.m24*mat.m32*mat.m43 - mat.m11*mat.m24*mat.m33*mat.m42 -\
+			mat.m12*mat.m21*mat.m33*mat.m44 + mat.m12*mat.m21*mat.m34*mat.m43 +\
+			mat.m12*mat.m23*mat.m31*mat.m44 - mat.m12*mat.m23*mat.m34*mat.m41 -\
+			mat.m12*mat.m24*mat.m31*mat.m43 + mat.m12*mat.m24*mat.m33*mat.m41 +\
+			mat.m13*mat.m21*mat.m32*mat.m44 - mat.m13*mat.m21*mat.m34*mat.m42 -\
+			mat.m13*mat.m22*mat.m31*mat.m44 + mat.m13*mat.m22*mat.m34*mat.m41 +\
+			mat.m13*mat.m24*mat.m31*mat.m42 - mat.m13*mat.m24*mat.m32*mat.m41 -\
+			mat.m14*mat.m21*mat.m32*mat.m43 + mat.m14*mat.m21*mat.m33*mat.m42 +\
+			mat.m14*mat.m22*mat.m31*mat.m43 - mat.m14*mat.m22*mat.m33*mat.m41 -\
+			mat.m14*mat.m23*mat.m31*mat.m42 + mat.m14*mat.m23*mat.m32*mat.m41
+
+		return ret
+
+	@staticmethod
+	def adj_elem(a1, a2, a3, b1, b2, b3, c1, c2, c3):return a1*(b2*c3 - c2*b3) - a2*(b1*c3 - c1*b3) + a3*(b1*c2 - c1*b2)
+
+	@staticmethod
+	def adj(mat):
+		a1 = Matrix.adj_elem(mat.m22, mat.m23, mat.m24, mat.m32, mat.m33, mat.m34, mat.m42, mat.m43, mat.m44)
+		a2 = Matrix.adj_elem(mat.m21, mat.m23, mat.m24, mat.m31, mat.m33, mat.m34, mat.m41, mat.m43, mat.m44)
+		a3 = Matrix.adj_elem(mat.m21, mat.m22, mat.m24, mat.m31, mat.m32, mat.m34, mat.m41, mat.m42, mat.m44)
+		a4 = Matrix.adj_elem(mat.m21, mat.m22, mat.m23, mat.m31, mat.m32, mat.m33, mat.m41, mat.m42, mat.m43)
+		b1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m32, mat.m33, mat.m34, mat.m42, mat.m43, mat.m44)
+		b2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m31, mat.m33, mat.m34, mat.m41, mat.m43, mat.m44)
+		b3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m31, mat.m32, mat.m34, mat.m41, mat.m42, mat.m44)
+		b4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m31, mat.m32, mat.m33, mat.m41, mat.m42, mat.m43)
+		c1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m22, mat.m23, mat.m24, mat.m42, mat.m43, mat.m44)
+		c2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m21, mat.m23, mat.m24, mat.m41, mat.m43, mat.m44)
+		c3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m21, mat.m22, mat.m24, mat.m41, mat.m42, mat.m44)
+		c4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m21, mat.m22, mat.m23, mat.m41, mat.m42, mat.m43)
+		d1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m22, mat.m23, mat.m24, mat.m32, mat.m33, mat.m34)
+		d2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m21, mat.m23, mat.m24, mat.m31, mat.m33, mat.m34)
+		d3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m21, mat.m22, mat.m24, mat.m31, mat.m32, mat.m34)
+		d4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m21, mat.m22, mat.m23, mat.m31, mat.m32, mat.m33)
+
+		result = Matrix(
+			a1, -a2, a3, -a4,
+			-b1, b2, -b3, b4,
+			c1, -c2, c3, -c4,
+			-d1, d2, -d3, d4
+		)
+		return Matrix.transpose(result)
+
+	@staticmethod
+	def inverse(mat):
+		det = abs(Matrix.det(mat))
+		adj = Matrix.adj(mat)
+		inv = Matrix()
+		for i in xrange(4):
+			for j in xrange(4):
+				inv.set_v(i, j, adj.get_v(i, j) / det)
+
+		return inv
 
 	def __str__(self):
 		return "%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n" % (

@@ -13,17 +13,20 @@ class Vector4:
 
 		return
 
+	@staticmethod
+	def up():return Vector4(0, 1, 0, 0)
+
 	def length(self):
 		sq = self.x * self.x + self.y * self.y + self.z * self.z
 		return math.sqrt(sq)
 
 	def normalize(self):
-		l = length()
+		l = self.length()
 		if l != 0.0:
 			inv = 1 / l
-			x *= inv
-			y *= inv
-			z *= inv
+			self.x *= inv
+			self.y *= inv
+			self.z *= inv
 
 		return self
 

@@ -131,6 +131,61 @@ class DeviceContext:
 
 		return
 
+	def draw_triangle(self, p1, p2, p3, color):
+		if p1.y == p2.y:
+			if p3.y <= p1.y: # 平底
+				self._draw_triangle_flat_bottom(p3, p1, p2, color)
+			else: # 平顶
+				self._draw_triangle_flat_top(p1, p2, p3, color)
+		elif p1.y == p3.y:
+			if p2.y <= p1.y: # 平底
+				self._draw_triangle_flat_bottom(p2, p1, p3, color)
+			else: # 平顶
+				self._draw_triangle_flat_top(p1, p3, p2, color)
+		elif p2.y == p3.y:
+			if p1.y <= p2.y: # 平底
+				self._draw_triangle_flat_bottom(p1, p2, p3, color)
+			else: # 平顶
+				self._draw_triangle_flat_top(p2, p3, p1, color)
+		else:
+			xtop = ytop = xmid = ymid = xbom = ybom = 0
+
+			if p1.y < p2.y < p3.y:
+				xtop, ytop = p1.x, p1.y
+				xmid, ymid = p2.x, p2.y
+				xbom, ybom = p3.x, p3.y
+			elif p1.y < p3.y < p2.y:
+				xtop, ytop = p1.x, p1.y
+				xmid, ymid = p3.x, p3.y
+				xbom, ybom = p2.x, p2.y
+			elif p2.y < p1.y < p3.y:
+				xtop, ytop = p2.x, p2.y
+				xmid, ymid = p1.x, p1.y
+				xbom, ybom = p3.x, p3.y
+			elif p2.y < p3.y < p1.y:
+				xtop, ytop = p2.x, p2.y
+				xmid, ymid = p3.x, p3.y
+				xbom, ybom = p1.x, p1.y
+			elif p3.y < p1.y < p2.y:
+				xtop, ytop = p3.x, p3.y
+				xmid, ymid = p1.x, p1.y
+				xbom, ybom = p2.x, p2.y 
+			elif p3.x < p2.y < p1.y:
+				xtop, ytop = p3.x, p2.y
+				xmid, ymid = p2.x, p2.y
+				xbom, ybom = p1.x, p1.y
+
+			xl = int((ymid - ytop) * (xbom - xtop) / (ybom - ytop) + xtop + 0.5)
+			if xl <= xmid: # 左三角形
+				self._draw_triangle_flat_bottom(Vector2(xtop, ytop), Vector2(xl, ymid), Vector2(xmid, ymid), color)
+				self._draw_triangle_flat_top(Vector2(xl, ymid), Vector2(xmid, ymid), Vector2(xbom, ybom), color)
+			else: # 右三角形
+				self._draw_triangle_flat_bottom(Vector2(xtop, ytop), Vector2(xmid, ymid), Vector2(xl, ymid), color)
+				self._draw_triangle_flat_top(Vector2(xmid, ymid), Vector2(xl, ymid), Vector2(xbom, ybom), color)
+
+		return
+
+
 	######################################################
 	#
 	######################################################

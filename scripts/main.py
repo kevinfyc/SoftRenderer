@@ -12,9 +12,11 @@ dev = device.Device(800, 600)
 dev.draw_pixel(100, 100, Color.black())
 
 # for test
-from kmath import vector2
+from kmath import vector2, vector4
 dev_con = device_context.DeviceContext(dev)
-dev_con.draw_line(vector2.Vector2(100, 100), vector2.Vector2(300, 500), Color.black())
+
+dev_con.line_clip(vector2.Vector2(200, 20), vector2.Vector2(300, 300), vector4.Vector4(100, 400, 100, 400), Color.black())
+
 # end test
 
 while True:

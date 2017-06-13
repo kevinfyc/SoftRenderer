@@ -13,6 +13,9 @@ class DeviceContext:
 
 		return
 
+	######################################################
+	#
+	######################################################
 	# 布雷森漢姆直線演算法
 	def draw_line(self, bgn, end, color):
 		steep = abs(end.y - bgn.y) > abs(end.x - bgn.x)
@@ -95,6 +98,9 @@ class DeviceContext:
 
 		return
 
+	######################################################
+	#
+	######################################################
 	def draw_rect(self, rect, color):
 		x_min, x_max, y_min, y_max = rect.x, rect.y, rect.w, rect.z
 
@@ -104,3 +110,16 @@ class DeviceContext:
 		self.draw_line(Vector2(x_max, y_max), Vector2(x_max, y_min), color) # rt-rb
 
 		return
+	######################################################
+	#
+	######################################################
+	def _draw_triangle_flat_bottom(self, p1, p2, p3, color):
+		for y in xrange(p1.y, p2.y):
+			xs = int((y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x + 0.5)
+			xe = int((y - p1.y) * (p3.x - p1.x) / (p3.y - p1.y) + p1.x + 0.5)
+			self.draw_line(Vector2(xs, y), Vector2(xe, y), color)
+
+		return
+	######################################################
+	#
+	######################################################

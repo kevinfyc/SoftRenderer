@@ -17,6 +17,8 @@ dev_con = device_context.DeviceContext(dev)
 
 dev_con.line_clip(vector2.Vector2(200, 20), vector2.Vector2(300, 300), vector4.Vector4(100, 400, 100, 400), Color.black())
 
+dev_con._draw_triangle_flat_bottom(vector2.Vector2(300, 100), vector2.Vector2(200, 200), vector2.Vector2(400, 200), Color.black())
+
 # end test
 
 while True:

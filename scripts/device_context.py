@@ -113,6 +113,7 @@ class DeviceContext:
 	######################################################
 	#
 	######################################################
+	# 平底三角形 p2 p3共线
 	def _draw_triangle_flat_bottom(self, p1, p2, p3, color):
 		for y in xrange(p1.y, p2.y):
 			xs = int((y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x + 0.5)
@@ -120,6 +121,16 @@ class DeviceContext:
 			self.draw_line(Vector2(xs, y), Vector2(xe, y), color)
 
 		return
+
+	# 平顶三角形 p1 p2共线
+	def _draw_triangle_flat_top(self, p1, p2, p3, color):
+		for y in xrange(p1.y, p3.y):
+			xs = int((y - p1.y) * (p3.x - p1.x) / (p3.y - p1.y) + p1.x + 0.5)
+			xe = int((y - p2.y) * (p3.x - p2.x) / (p3.y - p2.y) + p2.x + 0.5)
+			self.draw_line(Vector2(xs, y), Vector2(xe, y), color)
+
+		return
+
 	######################################################
 	#
 	######################################################

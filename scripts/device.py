@@ -2,7 +2,12 @@
 
 import sys
 
-import pygame
+import config
+
+if config.USE_PYGAME:
+	import pygame
+else:
+	import Tkinter
 
 from color import Color
 
@@ -11,11 +16,17 @@ class Device:
 		self.width = width
 		self.height = height
 
-		pygame.init()
+		if config.USE_PYGAME:
+			pygame.init()
 
-		self.screen = pygame.display.set_caption('soft renderer')
-		self.screen = pygame.display.set_mode([width, height])
-		self.screen.fill(Color.red().to_list())
+			self.screen = pygame.display.set_caption('soft renderer')
+			self.screen = pygame.display.set_mode([width, height])
+			self.screen.fill(Color.red().to_list())
+		else:
+			self.window = Tkinter.Tk()
+			self.window.title("soft renderer")
+			self.cvs = Tkinter.Canvas(self.window, width=width, height=height)
+			self.cvs.pack()
 
 		self.frame_buffer = [0, ] * self.width * self.height
 		self.z_buffer = [[0,] * self.height ] * self.width
@@ -41,21 +52,29 @@ class Device:
 		if hex_color == cur_color:return
 
 		self.frame_buffer[self.width*y + x] = Color.to_hex(color)
-		pygame.draw.rect(self.screen, color.to_list(), [x, y, 1, 1], 1)
-		#pygame.display.flip()
+
+		if config.USE_PYGAME:
+			pygame.draw.rect(self.screen, color.to_list(), [x, y, 1, 1], 1)
+		else:
+			self.cvs.create_line(x, y, x, y+1, fill="#ff0000")
 
 		return
 
 	def begin_draw(self):pass
 
 	def end_draw(self):
-		pygame.display.flip()
+		if config.USE_PYGAME:
+			pygame.display.flip()
 
 		return
 
 	def clear_buffer(self, color):
+		import time
+		t = time.time()
 		for x in xrange(self.width):
 			for y in xrange(self.height):
 				self.draw_pixel(x, y, color)
 				self.z_buffer[x][y] = 0
+		n = time.time() - t
+		print "clear nt is ", n
 

@@ -15,49 +15,49 @@ class Matrix:
 		return
 
 	@property
-	def m11(self):return self.m[0][0]
+	def m11(self):return self.get_v(0, 0)
 	@property
-	def m12(self):return self.m[0][1]
+	def m12(self):return self.get_v(0, 1)
 	@property
-	def m13(self):return self.m[0][2]
+	def m13(self):return self.get_v(0, 2)
 	@property
-	def m14(self):return self.m[0][3]
+	def m14(self):return self.get_v(0, 3)
 
 
 	@property
-	def m21(self):return self.m[1][0]
+	def m21(self):return self.get_v(1, 0)
 	@property
-	def m22(self):return self.m[1][1]
+	def m22(self):return self.get_v(1, 1)
 	@property
-	def m23(self):return self.m[1][2]
+	def m23(self):return self.get_v(1, 2)
 	@property
-	def m24(self):return self.m[1][3]
+	def m24(self):return self.get_v(1, 3)
 
 
 	@property
-	def m31(self):return self.m[2][0]
+	def m31(self):return self.get_v(2, 0)
 	@property
-	def m32(self):return self.m[2][1]
+	def m32(self):return self.get_v(2, 1)
 	@property
-	def m33(self):return self.m[2][2]
+	def m33(self):return self.get_v(2, 2)
 	@property
-	def m34(self):return self.m[2][3]
+	def m34(self):return self.get_v(2, 3)
 
 
 	@property
-	def m41(self):return self.m[3][0]
+	def m41(self):return self.get_v(3, 0)
 	@property
-	def m42(self):return self.m[3][1]
+	def m42(self):return self.get_v(3, 1)
 	@property
-	def m43(self):return self.m[3][2]
+	def m43(self):return self.get_v(3, 2)
 	@property
-	def m44(self):return self.m[3][3]
+	def m44(self):return self.get_v(3, 3)
 
 	def get_v(self, i, k):return self.m[i][k]
 	def set_v(self, i, k, v):self.m[i][k] = v
 
 	def __eq__(self, v):
-		if type(v) != Matrix:return False
+		if not isinstance(v, Matrix):return False
 
 		for i in xrange(4):
 			for j in xrange(4):
@@ -82,16 +82,27 @@ class Matrix:
 				)
 
 	def __mul__(self, v):
-		mat = Matrix()
+		mat = Matrix(
+				self.m11 * v.m11 + self.m12 * v.m21 + self.m13 * v.m31 + self.m14 * v.m41,
+				self.m11 * v.m12 + self.m12 * v.m22 + self.m13 * v.m33 + self.m14 * v.m42,
+				self.m11 * v.m13 + self.m12 * v.m23 + self.m13 * v.m33 + self.m14 * v.m43,
+				self.m11 * v.m14 + self.m12 * v.m24 + self.m13 * v.m34 + self.m14 * v.m44,
 
-		for i in xrange(4):
-			for j in xrange(4):
-				mat.set_v(j, i, 
-						self.m[j][0] * v.m[0][i] + 
-						self.m[j][1] * v.m[1][i] + 
-						self.m[j][2] * v.m[2][i] + 
-						self.m[j][3] * v.m[3][i])
-
+				self.m21 * v.m11 + self.m22 * v.m21 + self.m23 * v.m31 + self.m24 * v.m41,
+				self.m21 * v.m12 + self.m22 * v.m22 + self.m23 * v.m33 + self.m24 * v.m42,
+				self.m21 * v.m13 + self.m22 * v.m23 + self.m23 * v.m33 + self.m24 * v.m43,
+				self.m21 * v.m14 + self.m22 * v.m24 + self.m23 * v.m34 + self.m24 * v.m44,
+				
+				self.m31 * v.m11 + self.m32 * v.m21 + self.m33 * v.m31 + self.m34 * v.m41,
+				self.m31 * v.m12 + self.m32 * v.m22 + self.m33 * v.m33 + self.m34 * v.m42,
+				self.m31 * v.m13 + self.m32 * v.m23 + self.m33 * v.m33 + self.m34 * v.m43,
+				self.m31 * v.m14 + self.m32 * v.m24 + self.m33 * v.m34 + self.m34 * v.m44,
+				
+				self.m41 * v.m11 + self.m42 * v.m21 + self.m43 * v.m31 + self.m44 * v.m41,
+				self.m41 * v.m12 + self.m42 * v.m22 + self.m43 * v.m33 + self.m44 * v.m42,
+				self.m41 * v.m13 + self.m42 * v.m23 + self.m43 * v.m33 + self.m44 * v.m43,
+				self.m41 * v.m14 + self.m42 * v.m24 + self.m43 * v.m34 + self.m44 * v.m44,
+				)
 		return mat
 
 	def identity(self):
@@ -129,84 +140,86 @@ class Matrix:
 
 	@staticmethod
 	def perspective_fov_lh(fov, aspect, near, far):
-		mat = Matrix()
-		mat.set_zero()
-
 		height = math.cos(fov*0.5) / math.sin(fov*0.5)
-		mat.set_v(0, 0, height / aspect)
-		mat.set_v(1, 1, height)
-		mat.set_v(2, 2, far / (far - near))
-		mat.set_v(2, 3, 1)
-		mat.set_v(3, 2, near * far / (near - far))
+
+		mat = Matrix(
+				height / aspect, 0, 0, 0,
+				0, height, 0, 0,
+				0, 0, far / (far - near), 1,
+				0, 0,  near * far / float(near - far), 0
+				)
 		return mat
 
-	@staticmethod
-	def transpose(mat):
+	def transpose(self):
 		return Matrix(
-				mat.m11, mat.m21, mat.m31, mat.m41,
-				mat.m12, mat.m22, mat.m32, mat.m42,
-				mat.m13, mat.m23, mat.m33, mat.m43,
-				mat.m14, mat.m24, mat.m34, mat.m44
+				self.m11, self.m21, self.m31, self.m41,
+				self.m12, self.m22, self.m32, self.m42,
+				self.m13, self.m23, self.m33, self.m43,
+				self.m14, self.m24, self.m34, self.m44
 				)
 
-	@staticmethod
-	def det(mat):
-		ret = \
-			mat.m11*mat.m22*mat.m33*mat.m44 - mat.m11*mat.m22*mat.m34*mat.m43 -\
-			mat.m11*mat.m23*mat.m32*mat.m44 + mat.m11*mat.m23*mat.m34*mat.m42 +\
-			mat.m11*mat.m24*mat.m32*mat.m43 - mat.m11*mat.m24*mat.m33*mat.m42 -\
-			mat.m12*mat.m21*mat.m33*mat.m44 + mat.m12*mat.m21*mat.m34*mat.m43 +\
-			mat.m12*mat.m23*mat.m31*mat.m44 - mat.m12*mat.m23*mat.m34*mat.m41 -\
-			mat.m12*mat.m24*mat.m31*mat.m43 + mat.m12*mat.m24*mat.m33*mat.m41 +\
-			mat.m13*mat.m21*mat.m32*mat.m44 - mat.m13*mat.m21*mat.m34*mat.m42 -\
-			mat.m13*mat.m22*mat.m31*mat.m44 + mat.m13*mat.m22*mat.m34*mat.m41 +\
-			mat.m13*mat.m24*mat.m31*mat.m42 - mat.m13*mat.m24*mat.m32*mat.m41 -\
-			mat.m14*mat.m21*mat.m32*mat.m43 + mat.m14*mat.m21*mat.m33*mat.m42 +\
-			mat.m14*mat.m22*mat.m31*mat.m43 - mat.m14*mat.m22*mat.m33*mat.m41 -\
-			mat.m14*mat.m23*mat.m31*mat.m42 + mat.m14*mat.m23*mat.m32*mat.m41
+	def det(self):
+		ret = 0
+
+		ret += self.m[0][0] * (self.m[1][1] * self.m[2][2] - self.m[1][2] * self.m[2][1])
+		ret -= self.m[0][1] * (self.m[1][0] * self.m[2][2] - self.m[1][2] * self.m[2][0])
+		ret += self.m[0][2] * (self.m[1][0] * self.m[2][1] - self.m[1][1] * self.m[2][0])
 
 		return ret
 
-	@staticmethod
-	def adj_elem(a1, a2, a3, b1, b2, b3, c1, c2, c3):return a1*(b2*c3 - c2*b3) - a2*(b1*c3 - c1*b3) + a3*(b1*c2 - c1*b2)
+	def inverse(self):
+		matrix = Matrix(
+				self.m11, self.m12, self.m13, self.m14,
+                self.m21, self.m22, self.m23, self.m24,
+                self.m31, self.m32, self.m33, self.m34,
+                self.m41, self.m42, self.m43, self.m44
+				)
+
+		determinant = matrix.det()
+
+		if determinant == 0:
+			return False
+
+		rcp = 1 / determinant
+		self.m[0][0] = matrix.m[1][1] * matrix.m[2][2] - matrix.m[1][2] * matrix.m[2][1]
+		self.m[0][1] = matrix.m[0][2] * matrix.m[2][1] - matrix.m[0][1] * matrix.m[2][2]
+		self.m[0][2] = matrix.m[0][1] * matrix.m[1][2] - matrix.m[0][2] * matrix.m[1][1]
+		self.m[1][0] = matrix.m[1][2] * matrix.m[2][0] - matrix.m[1][0] * matrix.m[2][2]
+		self.m[1][1] = matrix.m[0][0] * matrix.m[2][2] - matrix.m[0][2] * matrix.m[2][0]
+		self.m[1][2] = matrix.m[0][2] * matrix.m[1][0] - matrix.m[0][0] * matrix.m[1][2]
+		self.m[2][0] = matrix.m[1][0] * matrix.m[2][1] - matrix.m[1][1] * matrix.m[2][0]
+		self.m[2][1] = matrix.m[0][1] * matrix.m[2][0] - matrix.m[0][0] * matrix.m[2][1]
+		self.m[2][2] = matrix.m[0][0] * matrix.m[1][1] - matrix.m[0][1] * matrix.m[1][0]
+
+		self.m[0][0] *= rcp
+		self.m[0][1] *= rcp
+		self.m[0][2] *= rcp
+
+		self.m[1][0] *= rcp
+		self.m[1][1] *= rcp
+		self.m[1][2] *= rcp
+
+		self.m[2][0] *= rcp
+		self.m[2][1] *= rcp
+		self.m[2][2] *= rcp
+
+		self.m[3][0] = -(matrix.m[3][0] * self.m[0][0] + matrix.m[3][1] * self.m[1][0] + matrix.m[3][2] * self.m[2][0])
+		self.m[3][1] = -(matrix.m[3][0] * self.m[0][1] + matrix.m[3][1] * self.m[1][1] + matrix.m[3][2] * self.m[2][1])
+		self.m[3][2] = -(matrix.m[3][0] * self.m[0][2] + matrix.m[3][1] * self.m[1][2] + matrix.m[3][2] * self.m[2][2])
+
+		if determinant == 0:
+			self.identity()
+
+		return True
 
 	@staticmethod
-	def adj(mat):
-		a1 = Matrix.adj_elem(mat.m22, mat.m23, mat.m24, mat.m32, mat.m33, mat.m34, mat.m42, mat.m43, mat.m44)
-		a2 = Matrix.adj_elem(mat.m21, mat.m23, mat.m24, mat.m31, mat.m33, mat.m34, mat.m41, mat.m43, mat.m44)
-		a3 = Matrix.adj_elem(mat.m21, mat.m22, mat.m24, mat.m31, mat.m32, mat.m34, mat.m41, mat.m42, mat.m44)
-		a4 = Matrix.adj_elem(mat.m21, mat.m22, mat.m23, mat.m31, mat.m32, mat.m33, mat.m41, mat.m42, mat.m43)
-		b1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m32, mat.m33, mat.m34, mat.m42, mat.m43, mat.m44)
-		b2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m31, mat.m33, mat.m34, mat.m41, mat.m43, mat.m44)
-		b3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m31, mat.m32, mat.m34, mat.m41, mat.m42, mat.m44)
-		b4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m31, mat.m32, mat.m33, mat.m41, mat.m42, mat.m43)
-		c1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m22, mat.m23, mat.m24, mat.m42, mat.m43, mat.m44)
-		c2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m21, mat.m23, mat.m24, mat.m41, mat.m43, mat.m44)
-		c3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m21, mat.m22, mat.m24, mat.m41, mat.m42, mat.m44)
-		c4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m21, mat.m22, mat.m23, mat.m41, mat.m42, mat.m43)
-		d1 = Matrix.adj_elem(mat.m12, mat.m13, mat.m14, mat.m22, mat.m23, mat.m24, mat.m32, mat.m33, mat.m34)
-		d2 = Matrix.adj_elem(mat.m11, mat.m13, mat.m14, mat.m21, mat.m23, mat.m24, mat.m31, mat.m33, mat.m34)
-		d3 = Matrix.adj_elem(mat.m11, mat.m12, mat.m14, mat.m21, mat.m22, mat.m24, mat.m31, mat.m32, mat.m34)
-		d4 = Matrix.adj_elem(mat.m11, mat.m12, mat.m13, mat.m21, mat.m22, mat.m23, mat.m31, mat.m32, mat.m33)
-
-		result = Matrix(
-			a1, -a2, a3, -a4,
-			-b1, b2, -b3, b4,
-			c1, -c2, c3, -c4,
-			-d1, d2, -d3, d4
-		)
-		return Matrix.transpose(result)
-
-	@staticmethod
-	def inverse(mat):
-		det = abs(Matrix.det(mat))
-		adj = Matrix.adj(mat)
-		inv = Matrix()
-		for i in xrange(4):
-			for j in xrange(4):
-				inv.set_v(i, j, adj.get_v(i, j) / det)
-
-		return inv
+	def screen_transform(width, height):
+		return Matrix(
+				width * 0.5, 0, 0, 0,
+				0, height * 0.5, 0, 0,
+				0, 0, 1, 0,
+				width * 0.5, height * 0.5, 0, 1
+				)
 
 	def __str__(self):
 		return "%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n" % (

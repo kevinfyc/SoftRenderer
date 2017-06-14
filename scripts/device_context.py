@@ -3,6 +3,14 @@
 from kmath.vector2 import Vector2
 from kmath.vector4 import Vector4
 from kmath import vector2
+from kmath.matrix import Matrix
+from kmath import kmath
+
+from shader import Shader
+
+from color import Color
+
+from vertex import VectexOut
 
 FM_WIREFRAME = 0 # 线框
 FM_SOLIDE	 = 1 # 填充
@@ -19,6 +27,8 @@ class DeviceContext:
 
 		self.vertex_buffer = []
 		self.index_buffer = []
+
+		self.shader = Shader()
 
 		self.camera_pos = Vector4()
 
@@ -46,181 +56,236 @@ class DeviceContext:
 		self.camera_pos = pos
 		return
 
-	######################################################
-	#
-	######################################################
-	def draw(self, index, index_start, vertex_start):pass
-	######################################################
-	#
-	######################################################
-	# 布雷森漢姆直線演算法
-	def draw_line(self, bgn, end, color):
-		steep = abs(end.y - bgn.y) > abs(end.x - bgn.x)
-
-		if steep:
-			bgn.x, bgn.y = bgn.y, bgn.x
-			end.x, end.y = end.y, end.x
-
-		if bgn.x > end.x:
-			bgn.x, end.x = end.x, bgn.x
-			bgn.y, end.y = end.y, bgn.y
-
-		deltax = end.x - bgn.x
-		deltay = abs(end.y - bgn.y)
-		error = deltax / 2
-		y = bgn.y
-
-		ystep = 0 + bool(bgn.y < end.y)
-
-		for x in xrange(bgn.x, end.x):
-			self.device.draw_pixel(y, x, color) if steep else self.device.draw_pixel(x, y, color)
-			error = error - deltay
-
-			if error < 0:
-				y = y + ystep
-				error = error + deltax
-
-		return
-
-	def line_clip(self, bgn, end, rect, color):
-		x1, y1 = bgn.x, bgn.y
-		x2, y2 = end.x, end.y
-		x_min, x_max, y_min, y_max = rect.x, rect.y, rect.z, rect.w
-
-		code1 = bgn.encode(rect)
-		code2 = end.encode(rect)
-
-		accept = False
-
-		while True:
-			if code1 == 0 and code2 == 0:
-				accept = True
-				break
-			elif (code1 & code2) != 0:
-				break
-			else:
-				x, y = 1, 1
-
-				code_out = code1 if code1 else code2
-
-				if code_out & vector2.TOP:
-					x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
-					y = y_max
-
-				elif code_out & vector2.BOTTOM:
-					x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
-					y = y_min
-
-				elif code_out & vector2.RIGHT:
-					y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
-					x = x_max
-
-				elif code_out & vector2.LEFT:
-					y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
-					x = x_min
-
-				if code_out == code1:
-					x1 = x
-					y1 = y
-					code1 = Vector2(x1, y1).encode(rect)
-				else:
-					x2 = x
-					y2 = y
-					code2 = Vector2(x2, y2).encode(rect)
-
-
-		if accept:
-			self.draw_rect(rect, color)
-			self.draw_line(Vector2(x1, y1), Vector2(x2, y2), color)
-
+	def set_shader(self, shader):
+		self.shader = shader
 		return
 
 	######################################################
 	#
 	######################################################
-	def draw_rect(self, rect, color):
-		x_min, x_max, y_min, y_max = rect.x, rect.y, rect.w, rect.z
+	def transform2proj(self, vertex):
+		out = self.shader.vs(vertex)
 
-		self.draw_line(Vector2(x_min, y_max), Vector2(x_max, y_max), color) # lt-rt
-		self.draw_line(Vector2(x_min, y_min), Vector2(x_max, y_min), color) # lb-rb
-		self.draw_line(Vector2(x_min, y_max), Vector2(x_min, y_min), color) # lt-lb
-		self.draw_line(Vector2(x_max, y_max), Vector2(x_max, y_min), color) # rt-rb
+		out.oneDivZ = 1 / out.pos_proj.w
+
+		out.color *= out.oneDivZ
+
+		out.normal *= out.oneDivZ
+
+		out.tex *= out.oneDivZ
+
+		return out
+
+	def clip(self, v):
+		if v.pos_proj.x >= -v.pos_proj.w and v.pos_proj.x <= v.pos_proj.w and\
+			v.pos_proj.y >= -v.pos_proj.w and v.pos_proj.y <= v.pos_proj.w and\
+			v.pos_proj.z >= 0 and v.pos_proj.z <= v.pos_proj.w:
+			return True
+
+		return False
+
+	def cvv(self, v):
+		v.pos_proj.x /= v.pos_proj.w
+		v.pos_proj.y /= v.pos_proj.w
+		v.pos_proj.z /= v.pos_proj.w
+		v.pos_proj.w = 1
+
+		return v
+
+	def transform2screen(self, mat, v):
+		v.pos_proj = v.pos_proj * mat
+
+		return v
+
+	def draw(self, index, index_start, vertex_start):
+		screen_mat = Matrix.screen_transform(self.device.width, self.device.height)
+
+		for i in xrange(index_start, index / 3):
+			p1 = self.vertex_buffer[vertex_start + self.index_buffer[3 * i]];
+			p2 = self.vertex_buffer[vertex_start + self.index_buffer[3 * i + 1]];
+			p3 = self.vertex_buffer[vertex_start + self.index_buffer[3 * i + 2]];
+
+			# TODO 背面消隐
+
+			v1 = self.transform2proj(p1)
+			v2 = self.transform2proj(p2)
+			v3 = self.transform2proj(p3)
+
+			if not self.clip(v1) or not self.clip(v2) or not self.clip(v3):
+				continue
+
+			v1 = self.cvv(v1)
+			v2 = self.cvv(v2)
+			v3 = self.cvv(v3)
+
+			v1 = self.transform2screen(screen_mat, v1)
+			v2 = self.transform2screen(screen_mat, v2)
+			v3 = self.transform2screen(screen_mat, v3)
+
+			self.draw_triangle_out(v1, v2, v3)
 
 		return
+	######################################################
+	#
+	######################################################
+	def draw_line(self, bgn, end):
+		x1, x2 = int(bgn.x), int(end.x)
+		y1, y2 = int(bgn.y), int(end.y)
+
+		dx = int(x2 - x1)
+		dy = int(y2 - y1)
+		stepx = 1
+		stepy = 1
+
+		if dx >= 0:
+			stepx = 1
+		else:
+			stepx = -1
+			dx = abs(dx)
+
+		if dy >= 0:
+			stepy = 1
+		else:
+			stepy = -1
+			dy = abs(dy)
+
+		deltax = 2 * dx
+		deltay = 2 * dy
+
+		if dx > dy:
+			error = deltay - dx
+			for i in xrange(dx):
+				if x1 >=0 and x1 < self.device.width and y1 >= 0 and y1 < self.device.height:
+					self.device.draw_pixel(x1, y1, Color.black())
+
+				if error >= 0:
+					error -= deltax
+					y1 += stepy
+
+
+				error += deltay
+				x1 += stepx
+
+		else:
+			error = deltax - dy
+			for i in xrange(dy):
+				if x1 >= 0 and x1 < self.device.width and y1 >= 0 and y1 < self.device.height:
+					self.device.draw_pixel(x1, y1, Color.black())
+
+				if error >= 0:
+					error -= deltay
+					x1 += stepx
+
+				error += deltax
+				y1 += stepy
+		
+		return
+
+	def scanline_fill(self, left, right, yIndex):
+		dx = right.pos_proj.x - left.pos_proj.x
+
+		for x in xrange(int(left.pos_proj.x), int(right.pos_proj.x)):
+			xIndex = int(x + 0.5)
+
+			if xIndex >= 0 and xIndex < self.device.width:
+				lerpFactor = (x - left.pos_proj.x) / dx if dx else 0
+
+				oneDivZ = kmath.lerp(left.oneDivZ, right.oneDivZ, lerpFactor)
+
+				if oneDivZ >= self.device.get_z(xIndex, yIndex):
+					self.device.set_z(xIndex, yIndex, oneDivZ)
+
+					w = 1 / oneDivZ
+
+					out = VectexOut.lerp(left, right, lerpFactor)
+					out.pos_proj.y = yIndex
+					out.tex *= w
+					out.normal *= w
+					out.color *= w
+
+					self.device.draw_pixel(xIndex, yIndex, self.shader.ps(out))
 	######################################################
 	#
 	######################################################
 	# 平底三角形 p2 p3共线
-	def _draw_triangle_flat_bottom(self, p1, p2, p3, color):
-		for y in xrange(p1.y, p2.y):
-			xs = int((y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x + 0.5)
-			xe = int((y - p1.y) * (p3.x - p1.x) / (p3.y - p1.y) + p1.x + 0.5)
-			self.draw_line(Vector2(xs, y), Vector2(xe, y), color)
+	def _draw_triangle_flat_bottom(self, v1, v2, v3):
+		dy = 0
+
+		for y in xrange(int(v1.pos_proj.y), int(v2.pos_proj.y)):
+			yIndex = int(y + 0.5)
+			if yIndex >= 0 and yIndex < self.device.height:
+				t = dy / (v2.pos_proj.y - v1.pos_proj.y)
+
+				new1 = VectexOut.lerp(v1, v2, t)
+				new2 = VectexOut.lerp(v1, v3, t)
+				dy += 1.0
+
+				if new1.pos_proj.x < new2.pos_proj.x:self.scanline_fill(new1, new2, yIndex)
+				else:self.scanline_fill(new2, new1, yIndex)
 
 		return
 
 	# 平顶三角形 p1 p2共线
-	def _draw_triangle_flat_top(self, p1, p2, p3, color):
-		for y in xrange(p1.y, p3.y):
-			xs = int((y - p1.y) * (p3.x - p1.x) / (p3.y - p1.y) + p1.x + 0.5)
-			xe = int((y - p2.y) * (p3.x - p2.x) / (p3.y - p2.y) + p2.x + 0.5)
-			self.draw_line(Vector2(xs, y), Vector2(xe, y), color)
+	def _draw_triangle_flat_top(self, v1, v2, v3):
+		dy = 0
+
+		for y in xrange(int(v1.pos_proj.y), int(v3.pos_proj.y)):
+			yIndex = int(y + 0.5)
+			if yIndex >= 0 and yIndex < self.device.height:
+				t = dy / (v3.pos_proj.y - v1.pos_proj.y)
+
+				new1 = VectexOut.lerp(v1, v3, t)
+				new2 = VectexOut.lerp(v2, v3, t)
+				dy += 1.0
+
+				if new1.pos_proj.x < new2.pos_proj.x:self.scanline_fill(new1, new2, yIndex)
+				else:self.self.scanline_fill(new2, new1, yIndex)
 
 		return
 
-	def draw_triangle(self, p1, p2, p3, color):
-		if p1.y == p2.y:
-			if p3.y <= p1.y: # 平底
-				self._draw_triangle_flat_bottom(p3, p1, p2, color)
+	def draw_triangle(self, v1, v2, v3):
+		if v1.pos_proj.y == v2.pos_proj.y:
+			if v3.pos_proj.y <= v1.pos_proj.y: # 平底
+				self._draw_triangle_flat_bottom(v3, v1, v2)
 			else: # 平顶
-				self._draw_triangle_flat_top(p1, p2, p3, color)
-		elif p1.y == p3.y:
-			if p2.y <= p1.y: # 平底
-				self._draw_triangle_flat_bottom(p2, p1, p3, color)
+				self._draw_triangle_flat_top(v1, v2, v3)
+		elif v1.pos_proj.y == v3.pos_proj.y:
+			if v2.pos_proj.y <= v1.pos_proj.y: # 平底
+				self._draw_triangle_flat_bottom(v2, v1, v3)
 			else: # 平顶
-				self._draw_triangle_flat_top(p1, p3, p2, color)
-		elif p2.y == p3.y:
-			if p1.y <= p2.y: # 平底
-				self._draw_triangle_flat_bottom(p1, p2, p3, color)
+				self._draw_triangle_flat_top(v1, v3, v2)
+		elif v2.pos_proj.y == v3.pos_proj.y:
+			if v1.pos_proj.y <= v2.pos_proj.y: # 平底
+				self._draw_triangle_flat_bottom(v1, v2, v3)
 			else: # 平顶
-				self._draw_triangle_flat_top(p2, p3, p1, color)
+				self._draw_triangle_flat_top(v2, v3, v1)
 		else:
-			xtop = ytop = xmid = ymid = xbom = ybom = 0
+			vertices = [v1, v2, v3]
+			vertices = sorted(vertices, cmp=lambda x, y:cmp(x.pos_proj.y, y.pos_proj.y))
 
-			if p1.y < p2.y < p3.y:
-				xtop, ytop = p1.x, p1.y
-				xmid, ymid = p2.x, p2.y
-				xbom, ybom = p3.x, p3.y
-			elif p1.y < p3.y < p2.y:
-				xtop, ytop = p1.x, p1.y
-				xmid, ymid = p3.x, p3.y
-				xbom, ybom = p2.x, p2.y
-			elif p2.y < p1.y < p3.y:
-				xtop, ytop = p2.x, p2.y
-				xmid, ymid = p1.x, p1.y
-				xbom, ybom = p3.x, p3.y
-			elif p2.y < p3.y < p1.y:
-				xtop, ytop = p2.x, p2.y
-				xmid, ymid = p3.x, p3.y
-				xbom, ybom = p1.x, p1.y
-			elif p3.y < p1.y < p2.y:
-				xtop, ytop = p3.x, p3.y
-				xmid, ymid = p1.x, p1.y
-				xbom, ybom = p2.x, p2.y 
-			elif p3.x < p2.y < p1.y:
-				xtop, ytop = p3.x, p2.y
-				xmid, ymid = p2.x, p2.y
-				xbom, ybom = p1.x, p1.y
+			top = vertices[0]
+			mid = vertices[1]
+			bot = vertices[2]
 
-			xl = int((ymid - ytop) * (xbom - xtop) / (ybom - ytop) + xtop + 0.5)
-			if xl <= xmid: # 左三角形
-				self._draw_triangle_flat_bottom(Vector2(xtop, ytop), Vector2(xl, ymid), Vector2(xmid, ymid), color)
-				self._draw_triangle_flat_top(Vector2(xl, ymid), Vector2(xmid, ymid), Vector2(xbom, ybom), color)
-			else: # 右三角形
-				self._draw_triangle_flat_bottom(Vector2(xtop, ytop), Vector2(xmid, ymid), Vector2(xl, ymid), color)
-				self._draw_triangle_flat_top(Vector2(xmid, ymid), Vector2(xl, ymid), Vector2(xbom, ybom), color)
+			mid_x = (mid.pos_proj.y - top.pos_proj.y) * (bot.pos_proj.x - top.pos_proj.x) / (bot.pos_proj.y - top.pos_proj.y) + top.pos_proj.x
+			dy = mid.pos_proj.y - top.pos_proj.y
+			t = dy / (bot.pos_proj.y - top.pos_proj.y)
 
+			mid_neo = VectexOut.lerp(top, bot, t)
+			mid_neo.pos_proj.x = mid_x
+			mid_neo.pos_proj.y = mid.pos_proj.y
+
+			_draw_triangle_flat_top(mid, mid_neo, bot)
+			_draw_triangle_flat_bottom(top, mid, mid_neo)
 		return
+
+	def draw_triangle_out(self, v1, v2, v3):
+		if self.renderMode == FM_WIREFRAME:
+			self.draw_line(Vector2(v1.pos_proj.x, v1.pos_proj.y), Vector2(v2.pos_proj.x, v2.pos_proj.y))
+			self.draw_line(Vector2(v1.pos_proj.x, v1.pos_proj.y), Vector2(v3.pos_proj.x, v3.pos_proj.y))
+			self.draw_line(Vector2(v2.pos_proj.x, v2.pos_proj.y), Vector2(v3.pos_proj.x, v3.pos_proj.y))
+		elif self.renderMode == FM_SOLIDE:
+			self.draw_triangle(v1, v2, v3)
 
 
 	######################################################

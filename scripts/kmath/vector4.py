@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import math
+import kmath
 
 from matrix import Matrix
 
@@ -15,6 +16,14 @@ class Vector4:
 
 	@staticmethod
 	def up():return Vector4(0, 1, 0, 0)
+
+	@staticmethod
+	def lerp(v1, v2, t):return Vector4(
+			kmath.lerp(v1.x, v2.x, t),
+			kmath.lerp(v1.y, v2.y, t),
+			kmath.lerp(v1.z, v2.z, t),
+			kmath.lerp(v1.w, v2.w, t),
+			)
 
 	def length(self):
 		sq = self.x * self.x + self.y * self.y + self.z * self.z
@@ -40,7 +49,7 @@ class Vector4:
 		return Vector4(m1, m2, m3, 0.0)
 
 	def __eq__(self, v):
-		if type(v) != Vector4:return False
+		if not isinstance(v, Vector4):return False
 
 		return  abs(self.x - v.x) <= 0.000001 and \
 				abs(self.y - v.y) <= 0.000001 and \
@@ -48,11 +57,11 @@ class Vector4:
 				abs(self.w - v.w) <= 0.000001
 
 	def __mul__(self, v):
-		if type(v) == Vector4:
+		if isinstance(v, Vector4):
 			return Vector4(self.x * v.x, self.y * v.y, self.z * v.z, self.w * v.w)
 		elif type(v) == float or type(v) == int:
 			return Vector4(self.x * v, self.y * v, self.z * v, self.w)
-		elif type(v) == Matrix:
+		elif isinstance(v, Matrix):
 			return Vector4(
 					self.x * v.m11 + self.y * v.m21 + self.z * v.m31 + self.w * v.m41,
 					self.x * v.m12 + self.y * v.m22 + self.z * v.m32 + self.w * v.m42,
@@ -65,3 +74,5 @@ class Vector4:
 	def __sub__(self, v):return Vector4(self.x - v.x, self.y - v.y, self.z - v.z, 0)
 
 	def __neg__(self):return Vector4(-self.x, -self.y, -self.z, -self.w)
+
+	def __str__(self):return "(%f, %f, %f, %f)" % (self.x, self.y, self.z, self.w, )

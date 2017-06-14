@@ -97,6 +97,22 @@ class DeviceContext:
 
 		return v
 
+	def back_face_culling(self, p1, p2, p3):
+		if self.renderMode == FM_WIREFRAME:
+			return True
+
+		vec1 = p2.pos - p1.pos
+		vec2 = p3.pos - p2.pos
+
+		normal = vec1.cross(vec2)
+
+		viewDir = p1.pos - self.camera_pos
+
+		if normal.dot(viewDir) < 0:
+			return True
+
+		return False
+
 	def draw(self, index, index_start, vertex_start):
 		screen_mat = Matrix.screen_transform(self.device.width, self.device.height)
 
@@ -105,7 +121,8 @@ class DeviceContext:
 			p2 = self.vertex_buffer[vertex_start + self.index_buffer[3 * i + 1]];
 			p3 = self.vertex_buffer[vertex_start + self.index_buffer[3 * i + 2]];
 
-			# TODO 背面消隐
+			if not self.back_face_culling(p1, p2, p3):
+				continue
 
 			v1 = self.transform2proj(p1)
 			v2 = self.transform2proj(p2)

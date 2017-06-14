@@ -28,6 +28,7 @@ while True:
 	s = 1 / 60.0
 	if nt < s:
 		time.sleep(s - nt)
+		nt = s
 
 	print "fps is %f dtime is %f" % (1 / nt, time.time() - tt, )
 	

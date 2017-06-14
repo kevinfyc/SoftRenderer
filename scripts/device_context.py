@@ -221,6 +221,9 @@ class DeviceContext:
 					out.color *= w
 
 					self.device.draw_pixel(xIndex, yIndex, self.shader.ps(out))
+
+		return
+
 	######################################################
 	#
 	######################################################

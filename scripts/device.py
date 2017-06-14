@@ -6,6 +6,7 @@ import config
 
 if config.USE_PYGAME:
 	import pygame
+	from pygame import gfxdraw
 else:
 	import Tkinter
 
@@ -54,7 +55,7 @@ class Device:
 		self.frame_buffer[self.width*y + x] = Color.to_hex(color)
 
 		if config.USE_PYGAME:
-			pygame.draw.rect(self.screen, color.to_list(), [x, y, 1, 1], 1)
+			gfxdraw.pixel(self.screen, x, y, color.to_list())
 		else:
 			self.cvs.create_line(x, y, x, y+1, fill="#ff0000")
 
@@ -69,12 +70,8 @@ class Device:
 		return
 
 	def clear_buffer(self, color):
-		import time
-		t = time.time()
 		for x in xrange(self.width):
 			for y in xrange(self.height):
 				self.draw_pixel(x, y, color)
 				self.z_buffer[x][y] = 0
-		n = time.time() - t
-		print "clear nt is ", n
 

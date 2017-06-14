@@ -7,3 +7,6 @@
 ### suport
  * z_buff
  * back face culling
+ 
+### todo
+ * texture
